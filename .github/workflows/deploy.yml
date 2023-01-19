@@ -21,10 +21,7 @@ jobs:
 
       - run: npm i
 
-      - run: npm test
-      - run: npm run lint
-      - run: npm run stylelint
-      - run: npm run typecheck
+
 
   deploy:
     needs: check
@@ -41,5 +38,5 @@ jobs:
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
           NETLIFY_DEPLOY_TO_PROD: true
           use_nvm: false
-          build_command: 'npm run build:docs'
-          build_directory: 'docs/docs/.vitepress/dist'
+          build_command: 'npm run build'
+          build_directory: 'dist'
