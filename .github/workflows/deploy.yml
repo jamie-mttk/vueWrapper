@@ -3,12 +3,12 @@ name: 'Deploy(main)'
 on:
   push:
     branches:
-      - main
+      - master
 
   pull_request:
     types: [ opened, edited, synchronize, reopened ]
     branches:
-      - origin
+      - master
 
 jobs:
   check:
