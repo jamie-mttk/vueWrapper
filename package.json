@@ -1,22 +1,30 @@
 {
   "name": "vuewrapper",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.2.0",
+  "description":"An alternative way of wrapping vue component",
+  "main": "./dist/vueWrapper.umd.js",
+  "module": "./dist/vueWrapper.mjs",
+  "exports": {
+    ".": {
+      "import": "./dist/vueWrapper.mjs",
+      "require": "./dist/vueWrapper.umd.js"
+    }
+  },
+  "files": [
+    "package.json",
+    "README.md",
+    "LICENSE",
+    "dist"
+  ],
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
+  },
   "scripts": {
-    "dev": "vite",
-    "build_check": "run-p type-check build-only",
-    "preview": "vite preview",
-    "build": "vite build",
-    "type-check": "vue-tsc --noEmit"
+    "build": "vite build"
   },
   "dependencies": {
-    "@codemirror/lang-javascript": "^6.1.2",
-    "@codemirror/theme-one-dark": "^6.1.0",
-    "element-plus": "^2.2.28",
-    "lodash": "^4.17.21",
-    "vue": "^3.2.45",
-    "vue-codemirror": "^6.1.1",
-    "vue-router": "^4.1.6"
+    "vue": "^3.2.45"
   },
   "devDependencies": {
     "@types/node": "^18.11.12",

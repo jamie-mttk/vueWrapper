@@ -7,7 +7,7 @@ defineOptions({
 });
 
 //Here the prop data type is not defined well
-const props = defineProps(['slotDefine', 'slotValue', 'slotChild'])
+const props = defineProps(['slotDefine', 'slotValue', 'modelValue'])
 
 //Slot parameter used for component/function/wrap
 const slotPara = computed(() => {
@@ -15,7 +15,7 @@ const slotPara = computed(() => {
         [key: string]: any
     }
     result['slotDefine'] = props.slotDefine
-    result['slotChild'] = props.slotChild
+    result['modelValue'] = props.modelValue
     result['slotValue'] = props.slotValue
     return result
 })

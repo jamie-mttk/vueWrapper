@@ -1,12 +1,12 @@
 
 <script setup lang="ts">
-import { ref, computed, useSlots, onBeforeUpdate } from 'vue'
+
 
 import SlotHolder from './SlotHolder.vue'
-import { getByPath, setByPath, parsePathFirstItem } from './pathUtil.ts'
+
 
 import { useCompBase } from './compBase.js'
-import CompWrap from "./CompWrap.vue";
+
 
 defineOptions({
     name: "CompWrap"

@@ -75,7 +75,7 @@ export function useCompBase(props, emit) {
 
     return events;
   });
-  //处理事件的方法
+  //
   function handleEvent(key: string, config: any) {
     return function () {
       if (typeof config == "function") {
@@ -83,8 +83,8 @@ export function useCompBase(props, emit) {
         return;
       }
 
-      //如果是String可以做函数查找,暂时不实现
-      //否则认为是JSON配置
+      //If it is a String, the function can be found by component tree,may implemented later
+      //If it is not a funciton directly, consider it is a JSON
       let type = config?.type;
       if (type == "function" && typeof config?.value == "function") {
         config.value(...arguments);
