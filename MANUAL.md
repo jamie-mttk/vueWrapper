@@ -1,7 +1,8 @@
 # MANUAL
 
 ## Installation
-Run the below command to add vuewrapper to project
+
+Run the below command to add vuewrapper into project
 
 ```sh
 npm install vuewrapper -save
@@ -9,17 +10,19 @@ npm install vuewrapper -save
 
 ## Usage
 
-You can import the component in main.js
+You can import the component in main.js globally
 
 ```sh
 import WRAPPER from 'vuewrapper'
+//Create vue app
 const app=createApp(App)
+//Install CompWrap globally
 app.use(WRAPPER)
 ```
 
-Then ComWrap can be used anywhere
+Then CompWrap can be used anywhere
 
-Or  import when needed
+Or import when needed
 
 ```sh
 import {CompWrap} from 'vuewrapper'
@@ -29,9 +32,9 @@ import {CompWrap} from 'vuewrapper'
 
 ### General
 
-We highly recommand to go through all the demo first and then read this manual.
-The below introduction are based on element plus. But this project can work with other component library as well.
-The structure config file is as below.
+We highly recommand to go through all the demos first and then read this manual.
+The below introduction is based on [element plus](https://github.com/element-plus/element-plus). But this project can work with other component library as well.
+The structure of the config is as below.
 
 ```sh
 
@@ -48,7 +51,7 @@ classes:[]
 
 ### sys
 
-The sys element has following properties:
+The sys element is the system level configuration with the following properties:
 |property       | description  |
 |  ----         | ----  |
 | component     | The base component. It can be a string(if it is already registerd) or imported component. The value is bind to component with [is attribute](https://vuejs.org/api/built-in-special-attributes.html#is).|
@@ -68,11 +71,11 @@ There are three methods to set v-model
     modelValue: valueInput,
 ```
 
-2. A wriable computed -  [vue3 manual](https://vuejs.org/guide/essentials/computed.html#writable-computed)
+2. A wriable computed -  Refer to [vue3 manual](https://vuejs.org/guide/essentials/computed.html#writable-computed)
 
 ```sh
 const valueInput = ref("InitValue");
-//The below code equal to modelValue: valueInput,  just to demo how to use computed
+//The below code equal to modelValue: valueInput,  just to demo how to use computed to set modelValue
 modelValue: computed({
     get() {
     return valueInput.value
@@ -95,17 +98,31 @@ sys: {
 },
 ```
 
-Please note in the above example, set modelValue:formValue.address does NOT work.
+Please note in the above example, config like ***modelValue: formValue.address*** does NOT work.
 
 ### props
 
 The idea to use [v-bind](https://vuejs.org/api/built-in-directives.html#v-bind) to bind all the props to component.
+So it is a JSON, the value can be any type. Below is a sample.
+
+```sh
+  props: {
+    placeholder: "Please input value complex sample",
+    clearable: true,
+    prefixIcon: "Calendar",
+    disabled: false,
+    size: inputSize,
+  },
+  ```
+
+
 
 ### slots
 
 #### Structure
 
-The structure of slots is as below
+The structure of slots is as below. slot1/slot2 is the slot name, and slot define 1/slot define 2 is described below
+
 
 ```sh
 {slot1:slot define 1,
@@ -116,13 +133,15 @@ slot2:slot define 2,
 
 #### Slot define
 
-A slot define can be a JSON / shortcut / JSON array. JSON is the standard format of slot define which will be described later. Shortcut is kind of simplified configuration. The element of the JSON array can be JSON or shortcut.
-Shotcut cane the following types, they will be convert to standard JSON format automatically.
+A slot define can be a JSON / shortcut / JSON array. JSON is the standard format of slot define which will be described later.The JSON array can be JSON or shortcut. Shortcut is kind of simplified configuration.
+Shotcut can be the following types, they will be convert to standard JSON format automatically.
 
-* If slot define is a String, it will be convert to {type:'text',value:'xyz'} xyz is String of slot define.
-* If slot define is a funciton, it will be convert to {type:'function',value:'xyz'} xyz is function of slot define.
-* If slot define is a object with no 'type' property, it will be convert to {type:'wrap',value:'xyz'} xyz is  slot define
-  
+|Type                              | Converted to  |
+|  ----                            | ----  |
+| String                           | {type:'text',value:'xyz'} xyz is String of slot define|
+| funciton                         | {type:'function',value:'xyz'} xyz is function of slot define|
+| An object with no 'type' property| {type:'wrap',value:'xyz'} xyz is slot define|
+
 #### Slot define JSON
 
 It has two properties, one is key the other is value. The value is explained by key.
@@ -132,16 +151,16 @@ The value can be a array, the element of the array will be explained as the belo
 |  ----    | ----  |
 | text     |{{value}} as vue Mustache syntax|
 | html     |Insert as HTML with v-html directive  |
-| component|Consider the value is a component,the slot parameter is set to the component property named slotPara  |
+| component|Consider the value is a component,the slot parameter is set to the component with name slotPara  |
 | function |Consider the value is function, the function will be evaluated with argment  slot parameter,the result will be inserted as HTML|
 | wrap|Refer to slot define as a wrap|
-| inherit|Expose the slot to parenet component. The slot name is the value if it is available, otherwise use the original slot name|
+| inherit|Expose the slot to parenet component. The slot name is the value if it is provided, otherwise use the original slot name|
 
 #### Slot define as a wrap
 
-The value can be a standard configuration as described in this manual, or it can be funciton and return a standard configuration. The input argument of funtion is slot parameter, so the configuration can be generated by the input parameter.
+The value can be a standard configuration as described in this manual, or it can be funciton which  return a standard configuration. The input argument of funtion is slot parameter, so the configuration can be generated by the input parameter.
 
-#### SLot parameter
+#### Slot parameter
 
 The slot parameter is a JSON with following properties.
 
@@ -165,16 +184,16 @@ The structure of events is a JSON/JS object as below
 
 Event handle can be configed as below. 
 
-1. function
+1. function  
 It is a funciton, and function will be called. The function argements are same as the event parameters.
-2. JSON , the property 'type' is 'function' and property 'value' is a function.
-Execute the function of property 'value'
-3. JSON, the property 'type' is 'inherit'
-Emit the event to parent component. If the proerty 'value' is available, use it as the event name; otherwise use the orginal event name as the emited event name.
+2. JSON with property 'type' is 'function' and property 'value' is a function  
+Execute the function provided in property 'value'
+3. JSON, the property 'type' is 'inherit'  
+Emit the event to parent component. If the proerty 'value' is available, use it as the event name; otherwise use the orginal event name.
 
-#### Restriction
+#### Restriction of event
 
-Event Modifiers is not supported.
+Event modifiers are not supported.
 
 ### styles
 
@@ -194,20 +213,20 @@ const myColor = ref("#ffff00");
  classes: ["testClass2"],
 ```
 
-#### Restriction
+#### Restriction of class
 
-The classes should be importedf globally.
+The classes should be imported globally.
 
 ### method
 
-The root base component can be called by 'callMethod', refer to demo 'Table'
+The root base component can be called by 'callMethod', refer to demo 'Table'.  
 The first argument is the method name, the other arguments are the argument of the method to be called.
 
 ```sh
 mainRef1.value.callMethod('clearSelection')
 ```
 
-#### Restriction
+#### Restriction of method
 
 Only the root base component can be called.
-A mechenism to call all the base componets is under design.
+A mechenism to call all the children componets is under design.
