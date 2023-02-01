@@ -71,3 +71,4 @@ And this project can also be a fundamental technology of low code platform.
 
 Type script is not well supported.
 Some Vue 3 features can not not supported,refer to configuration manual for more detail.
+
