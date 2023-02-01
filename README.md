@@ -11,7 +11,7 @@ This project incldues two projects:
 * [Core project] (https://github.com/jamie-mttk/vueWrapper) which implements the full functionalities
 * [Demo project] (https://github.com/jamie-mttk/vueWrapperDemo) which is a demo to show how to use vuewrapper
 
-We recommend to preview the project first and then read the [developer manual](https://github.com/jamie-mttk/vueWrapper/blob/master/MANUAL.md)
+We recommend to preview the project first and then read the [Developer Manual](https://github.com/jamie-mttk/vueWrapper/blob/master/MANUAL.md)
 
 ## Project preview
 
