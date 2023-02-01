@@ -1,4 +1,4 @@
-# MANUAL
+# Developer Manual
 
 ## Installation
 
