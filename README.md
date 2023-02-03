@@ -15,7 +15,7 @@ We recommend to preview the project first and then read the [Developer Manual](h
 
 ## Project preview
 
-A live preview of the demo project is available [here](https://melodic-genie-43244a.netlify.app/)
+A live preview of the demo project is available [here](https://mttk.netlify.app/)
 
 
 ## Demo project Setup
