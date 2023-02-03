@@ -34,7 +34,7 @@ import {CompWrap} from 'vuewrapper'
 
 We highly recommand to go through all the demos first and then read this manual.
 The below introduction is based on [element plus](https://github.com/element-plus/element-plus). But this project can work with other component library as well.
-The structure of the config is as below.
+The structure of the config is as below. Since version 0.3.0, flat format config is supported,please refer to proper chapter belo
 
 ```sh
 
@@ -42,7 +42,6 @@ The structure of the config is as below.
 props:{},
 slots:{},
 events:{},
-styles:{},
 styles:{},
 classes:[]
 }
@@ -230,3 +229,19 @@ mainRef1.value.callMethod('clearSelection')
 
 Only the root base component can be called.
 A mechenism to call all the children componets is under design.
+
+### Flat format config
+
+The config format described above may have multiple levels. The target of flat format is to reduce the hierachy levels.
+The idea is to set a prefix to each segment per the below table.
+
+|Segment       | Prefix  |
+|----   | ----  |
+|sys    |~,the exceptions are styles/classes|
+|props  |none|
+|slots  |#|
+|events |@|
+|styles |~styles|
+|classes|~classes|
+
+Refer to sample "Concept" and "Form" for more detail

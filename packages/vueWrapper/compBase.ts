@@ -1,5 +1,13 @@
 //提供了通用的一些自定义组件的创建支持
-import { ref, computed, isRef, isReactive } from "vue";
+import {
+  ref,
+  computed,
+  defineAsyncComponent,
+  isRef,
+  isReactive,
+  reactive,
+  toRaw,
+} from "vue";
 import { getByPath, setByPath } from "./pathUtil.ts";
 import { parseSlot } from "./SlotUtil.ts";
 //
@@ -20,57 +28,69 @@ export interface configType {
   };
 }
 export interface propsType {
-  modelValue?: any; //说明可以接受任意类型
+  modelValue?: any;
   config?: configType;
 }
 
 export function useCompBase(props, emit) {
-  //modelValue - Here we need to use computed and return props.config?.sys?.modelValue does not work.
+  //Try to convert config to standard format
+  let configStd = convertFlatIfNeeded(props.config) || {};
+
+  //modelValue - Here we need to use computed and return configStd.sys?.modelValue does not work.
   const modelValue = computed({
     get() {
-      let modelValuePath = props.config?.sys?.modelValuePath;
+      let modelValuePath = configStd.sys?.modelValuePath;
       if (modelValuePath) {
-        return getByPath(props.config?.sys?.modelValue, modelValuePath);
+        return getByPath(configStd.sys?.modelValue, modelValuePath);
       } else {
-        return props.config?.sys?.modelValue;
+        return configStd.sys?.modelValue;
       }
     },
     set(valueNew) {
       //
-      if (!props.config?.sys?.hasOwnProperty("modelValue")) {
+      if (!configStd.sys?.hasOwnProperty("modelValue")) {
         //do nothing
         return;
       }
       //
-      let modelValuePath = props.config?.sys?.modelValuePath;
+      let modelValuePath = configStd.sys?.modelValuePath;
       if (modelValuePath) {
-        setByPath(props.config?.sys?.modelValue, modelValuePath, valueNew);
+        setByPath(configStd.sys?.modelValue, modelValuePath, valueNew);
       } else {
-        props.config.sys.modelValue = valueNew;
+        configStd.sys.modelValue = valueNew;
       }
     },
   });
-  //此组件属性的配置，过滤掉所有下划线开头的属性
+  //Parse component
+  //if it is a function, consider it is imported as "() => import('xxx')",
+  //so function will be wrapped into defineAsyncComponent
+  const parseBaseComponent = computed(() => {
+    let component = configStd.sys?.component;
+    //
+    if (component && typeof component == "function") {
+      return defineAsyncComponent(component);
+    }
+    //
+    return component;
+  });
+  //
   const configProps = computed(() => {
-    if (!props.config || !props.config.props) {
+    if (!configStd || !configStd.props) {
       return {};
     }
-    //console.log(JSON.stringify(props.config.props))
+    //console.log(JSON.stringify(configStd.props))
     //
-    return props.config.props;
+    return configStd.props;
   });
 
-  //事件处理相关的
+  //
   const eventHandlers = computed(() => {
-    if (!props.config || !props.config.events) {
+    if (!configStd || !configStd.events) {
       return {};
     }
     let events = {} as { [key: string]: any };
-    for (let key of Object.keys(props.config.events)) {
-      events[key] = handleEvent(
-        key,
-        handleEvent(key, props.config.events[key])
-      );
+    for (let key of Object.keys(configStd.events)) {
+      events[key] = handleEvent(key, handleEvent(key, configStd.events[key]));
     }
 
     return events;
@@ -101,7 +121,7 @@ export function useCompBase(props, emit) {
 
   //Slot configuration - well formated
   const configSlots = computed(() => {
-    return parseSlot(props.config);
+    return parseSlot(configStd);
   });
   //Only the slots with inherit is returned
   const configSlotsInherit = computed(() => {
@@ -119,34 +139,32 @@ export function useCompBase(props, emit) {
     return result;
   });
 
-  //此组件Style的配置
+  //
   const configStyles = computed(() => {
-    if (!props.config || !props.config.styles) {
+    if (!configStd || !configStd.styles) {
       return {};
     }
     //
-    return props.config.styles;
+    return configStd.styles;
   });
 
-  //此组件class的配置
+  //
   const configClasses = computed(() => {
-    if (!props.config || !props.config.classes) {
+    if (!configStd || !configStd.classes) {
       return [];
     }
     //
-    return props.config.classes;
+    return configStd.classes;
   });
 
-  //指向目标对象
+  //指
   const componentWrapRef = ref(null);
-  //调用函数
+  //
   function callMethod(methodName: string, ...paras: any[]) {
     const code = "componentWrapRef.value." + methodName + "(...paras)";
     return eval(code);
   }
 
-  //以下适用于批量处理
-  //获取配置值，先从childConfig的props获取,没找到则从本组件的config中获取，没有则返回defaultVal
   function getNestedConfig(
     key: string,
     childConfig: any,
@@ -166,9 +184,62 @@ export function useCompBase(props, emit) {
     return defaultVal;
   }
 
+  //Convert flat config to standard format
+  function convertFlatIfNeeded(config) {
+    if (!config["~component"]) {
+      //Considier it is standard config, do not conver
+      return config;
+    }
+    //Here use toRaw to get raw value
+    let configNew = convertFlatInternal(toRaw(config));
+
+    //Here we keep the Reactivity if needed
+    if (isRef(config)) {
+      return ref(configNew);
+    } else if (isReactive(config)) {
+      return reactive(configNew);
+    } else {
+      return configNew;
+    }
+  }
+  //Core function of convert flat config to standand config
+  function convertFlatInternal(config) {
+    //styles/classes are one level, so it can be set directly
+    //And please also note it is a low level copy!
+    let configNew = { sys: {}, props: {}, slots: {}, events: {} };
+    for (let k of Object.keys(config)) {
+      if (k.startsWith("~")) {
+        //
+        if ("~styles" == k) {
+          configNew.styles = config[k];
+        } else if ("~classes" == k) {
+          configNew.classes = config[k];
+        } else {
+          //sys
+          configNew.sys[k.substring(1)] = config[k];
+        }
+      } else if (k.startsWith("#")) {
+        //slot
+
+        //consider # as default slot
+        configNew.slots["#" == k ? "default" : k.substring(1)] = config[k];
+      } else if (k.startsWith("@")) {
+        //event
+        configNew.events[k.substring(1)] = config[k];
+      } else {
+        //props
+        configNew.props[k] = config[k];
+      }
+      //
+    }
+    //
+    return configNew;
+  }
+
   //
   return {
     modelValue,
+    parseBaseComponent,
     configProps,
     configSlots,
     configSlotsInherit,

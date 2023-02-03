@@ -51,6 +51,23 @@ export const configInput1 = reactive({
 });
 ```
 
+Since version 0.3.0, flat format config is supported. So the config can look like below
+
+```sh
+export const valueInput = ref("InitValue");
+
+//A simple input configuration
+export const configInput1 = reactive({
+  //sys
+    "~component": "ElInput",
+    "~modelValue": valueInput,
+  //props
+    placeholder: "Please input value",
+    clearable: true,
+  
+});
+```
+
 Then use CompWrap to render
 
 ```sh

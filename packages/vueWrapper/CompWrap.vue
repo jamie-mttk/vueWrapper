@@ -15,9 +15,9 @@ defineOptions({
 
 
 interface propsType {
-    modelValue?: any,  //说明可以接受任意类型
+    modelValue?: any, 
     config?: any
-    slotPara: any,//仅仅针对在slot时传值
+    slotPara: any,
 }
 //定义属性
 const props = defineProps<propsType>()
@@ -26,6 +26,7 @@ const emit = defineEmits(['update:modelValue'])
 
 const {
     modelValue,
+    parseBaseComponent,
     configProps,
     configSlots,
     configSlotsInherit,
@@ -76,7 +77,7 @@ defineExpose({
 // }
 </script>
 <template>
-    <component :is="props.config?.sys?.component" v-model="modelValue" ref="componentWrapRef" v-bind="configProps"
+    <component :is="parseBaseComponent" v-model="modelValue" ref="componentWrapRef" v-bind="configProps"
         v-on="eventHandlers" :style="configStyles" :class="configClasses" >
         <!--Template of NOT-Inherit-->
         <template #[k]="sp" :key="k" v-for="(v, k)  in  configSlots">
