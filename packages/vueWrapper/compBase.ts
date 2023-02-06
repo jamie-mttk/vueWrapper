@@ -216,20 +216,24 @@ export function useCompBase(props, emit) {
     //
     return configNew;
   }
-
+  //build context  used by config function
+  const context= computed(() => {
+    return buildContext();
+  })
+//Because of the JS Hoisting, parseConfig can not access context directly
+//Error:  can't access lexical declaration 'context' before initialization
+function buildContext(){
+  return { emit, props, callMethod };
+}
   //Parse config,evaluate  if it is function
   function parseConfig() {
     let c=props.config;
     if (typeof c=='function'){
-      return c(context)
+      return c(buildContext())
     }else{
       return c;
     }
   }
-  //build context  used by config function
-  const context= computed(() => {
-    return { emit, props, callMethod };
-  })
 
   //
   return {

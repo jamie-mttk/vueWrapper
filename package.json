@@ -1,6 +1,6 @@
 {
   "name": "vuewrapper",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description":"An alternative way of wrapping vue 3 component",
   "main": "./dist/vueWrapper.umd.js",
   "module": "./dist/vueWrapper.mjs",
