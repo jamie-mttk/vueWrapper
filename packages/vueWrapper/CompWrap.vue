@@ -34,12 +34,9 @@ const {
     configClasses,
     eventHandlers,
     componentWrapRef,
+    context,
     callMethod,
-    //		getNestedConfig,
-    // getChildProps,
-    // getChildSlots,
-    // getChildStyles,
-    // getChildClasses,
+
 } = useCompBase(props, emit)
 
 // //Get vue ref by path.Return the main wrapped object is path is empty(undefined,null,empty string)
@@ -81,7 +78,7 @@ defineExpose({
         v-on="eventHandlers" :style="configStyles" :class="configClasses" >
         <!--Template of NOT-Inherit-->
         <template #[k]="sp" :key="k" v-for="(v, k)  in  configSlots">
-            <SlotHolder :slotDefine="v" :modelValue="modelValue" :slotValue="sp">
+            <SlotHolder :slotDefine="v" :modelValue="modelValue" :slotValue="sp" :context="context">
             </SlotHolder>
         </template>
     

@@ -7,7 +7,8 @@ defineOptions({
 });
 
 //Here the prop data type is not defined well
-const props = defineProps(['slotDefine', 'slotValue', 'modelValue'])
+//ctx is the context to obtain props/emit or call method
+const props = defineProps(['context','slotDefine', 'slotValue', 'modelValue'])
 
 //Slot parameter used for component/function/wrap
 const slotPara = computed(() => {
@@ -58,7 +59,7 @@ function convertToArray(val) {
             <component v-for="v of convertToArray(sd)" :is="v" :slotPara="slotPara"></component>
         </template>
         <template v-if="sd.type == 'function'">
-            <span v-for="v of convertToArray(sd)" v-html="v(slotPara)"></span>
+            <span v-for="v of convertToArray(sd)" v-html="v(props.context,slotPara)"></span>
         </template>
         <template v-if="sd.type == 'wrap'">
             <CompWrap v-for="v of convertToArray(sd)" :config="wrapValue(v)"></CompWrap>

@@ -34,7 +34,7 @@ export interface propsType {
 
 export function useCompBase(props, emit) {
   //Try to convert config to standard format
-  let configStd = convertFlatIfNeeded(props.config) || {};
+  let configStd = convertFlatIfNeeded(parseConfig()) || {};
 
   //modelValue - Here we need to use computed and return configStd.sys?.modelValue does not work.
   const modelValue = computed({
@@ -92,7 +92,7 @@ export function useCompBase(props, emit) {
     for (let key of Object.keys(configStd.events)) {
       events[key] = handleEvent(key, handleEvent(key, configStd.events[key]));
     }
-
+    //
     return events;
   });
   //
@@ -107,7 +107,7 @@ export function useCompBase(props, emit) {
       //If it is not a funciton directly, consider it is a JSON
       let type = config?.type;
       if (type == "function" && typeof config?.value == "function") {
-        config.value(...arguments);
+        config.value( ...arguments);
         return;
       } else if (type == "inherit") {
         //抛出事件
@@ -157,31 +157,12 @@ export function useCompBase(props, emit) {
     return configStd.classes;
   });
 
-  //指
+  //
   const componentWrapRef = ref(null);
   //
   function callMethod(methodName: string, ...paras: any[]) {
     const code = "componentWrapRef.value." + methodName + "(...paras)";
     return eval(code);
-  }
-
-  function getNestedConfig(
-    key: string,
-    childConfig: any,
-    defaultVal: any
-  ): any {
-    //从childConfig获取
-    let temp = childConfig?.props[key];
-    if (temp) {
-      return temp;
-    }
-    //从本组件的config获取
-    temp = props?.config?.props[key];
-    if (temp) {
-      return temp;
-    }
-    //
-    return defaultVal;
   }
 
   //Convert flat config to standard format
@@ -236,6 +217,20 @@ export function useCompBase(props, emit) {
     return configNew;
   }
 
+  //Parse config,evaluate  if it is function
+  function parseConfig() {
+    let c=props.config;
+    if (typeof c=='function'){
+      return c(context)
+    }else{
+      return c;
+    }
+  }
+  //build context  used by config function
+  const context= computed(() => {
+    return { emit, props, callMethod };
+  })
+
   //
   return {
     modelValue,
@@ -247,7 +242,7 @@ export function useCompBase(props, emit) {
     configClasses,
     eventHandlers,
     componentWrapRef,
+    context,
     callMethod,
-    getNestedConfig,
   };
 }
