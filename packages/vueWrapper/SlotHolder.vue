@@ -6,8 +6,7 @@ defineOptions({
     name: "SlotHolder"
 });
 
-//Here the prop data type is not defined well
-//ctx is the context to obtain props/emit or call method
+//context is the context to obtain props/emit or call method
 const props = defineProps(['context','slotDefine', 'slotValue', 'modelValue'])
 
 //Slot parameter used for component/function/wrap
@@ -20,7 +19,7 @@ const slotPara = computed(() => {
     result['slotValue'] = props.slotValue
     return result
 })
-//If the wrapValue is a funciton ,the function is called with parameter slotPara and the return value is returned
+//If the wrapValue is a function ,the function is called with parameter slotPara and the return value is returned
 //Otherwise the input value is returned directly
 function wrapValue(value) {
     if (typeof value == "function") {

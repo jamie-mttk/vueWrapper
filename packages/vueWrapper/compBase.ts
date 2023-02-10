@@ -1,4 +1,6 @@
-//提供了通用的一些自定义组件的创建支持
+//This module includes the functions used by ComWrap.vue
+//Split into a ts file to reduce the size of ComWrap.vue
+//
 import {
   ref,
   computed,
@@ -7,34 +9,19 @@ import {
   isReactive,
   reactive,
   toRaw,
+  inject,
+  provide,
 } from "vue";
+import {standardizedConfig} from './compBaseUtil.ts'
 import { getByPath, setByPath } from "./pathUtil.ts";
 import { parseSlot } from "./SlotUtil.ts";
 //
-//定义配置的数据类型
-export interface configType {
-  component: any;
-  props?: {
-    [key: string]: any;
-  };
-  slots?: {
-    [key: string]: any;
-  };
-  events?: {
-    [key: string]: any;
-  };
-  styles?: {
-    [key: string]: any;
-  };
-}
-export interface propsType {
-  modelValue?: any;
-  config?: configType;
-}
-
 export function useCompBase(props, emit) {
   //Try to convert config to standard format
-  let configStd = convertFlatIfNeeded(parseConfig()) || {};
+  var configStd = standardizedConfig(parseConfig()) || {};
+
+  //since provide/inject should be called in setup,so save here
+  var instances = obtainInstances();
 
   //modelValue - Here we need to use computed and return configStd.sys?.modelValue does not work.
   const modelValue = computed({
@@ -64,21 +51,22 @@ export function useCompBase(props, emit) {
   //Parse component
   //if it is a function, consider it is imported as "() => import('xxx')",
   //so function will be wrapped into defineAsyncComponent
+  //To avoid the below warning, the return is wrapped with toRaw
+  //Vue received a Component which was made a reactive object. This can lead to unnecessary performance overhead, and should be avoided by marking the component with `markRaw` or using `shallowRef` instead of `ref`.
   const parseBaseComponent = computed(() => {
     let component = configStd.sys?.component;
     //
     if (component && typeof component == "function") {
-      return defineAsyncComponent(component);
+      return toRaw(defineAsyncComponent(component));
     }
     //
-    return component;
+    return toRaw(component);
   });
   //
   const configProps = computed(() => {
     if (!configStd || !configStd.props) {
       return {};
     }
-    //console.log(JSON.stringify(configStd.props))
     //
     return configStd.props;
   });
@@ -102,15 +90,14 @@ export function useCompBase(props, emit) {
         config(...arguments);
         return;
       }
-
       //If it is a String, the function can be found by component tree,may implemented later
       //If it is not a funciton directly, consider it is a JSON
       let type = config?.type;
       if (type == "function" && typeof config?.value == "function") {
-        config.value( ...arguments);
+        config.value(...arguments);
         return;
       } else if (type == "inherit") {
-        //抛出事件
+        //
         emit(config.value ? config.value : key, ...arguments);
         return;
       } else {
@@ -158,81 +145,67 @@ export function useCompBase(props, emit) {
   });
 
   //
-  const componentWrapRef = ref(null);
-  //
-  function callMethod(methodName: string, ...paras: any[]) {
-    const code = "componentWrapRef.value." + methodName + "(...paras)";
-    return eval(code);
-  }
-
-  //Convert flat config to standard format
-  function convertFlatIfNeeded(config) {
-    if (!config["~component"]) {
-      //Considier it is standard config, do not conver
-      return config;
-    }
-    //Here use toRaw to get raw value
-    let configNew = convertFlatInternal(toRaw(config));
-
-    //Here we keep the Reactivity if needed
-    if (isRef(config)) {
-      return ref(configNew);
-    } else if (isReactive(config)) {
-      return reactive(configNew);
-    } else {
-      return configNew;
-    }
-  }
-  //Core function of convert flat config to standand config
-  function convertFlatInternal(config) {
-    //styles/classes are one level, so it can be set directly
-    //And please also note it is a low level copy!
-    let configNew = { sys: {}, props: {}, slots: {}, events: {} };
-    for (let k of Object.keys(config)) {
-      if (k.startsWith("~")) {
-        //
-        if ("~styles" == k) {
-          configNew.styles = config[k];
-        } else if ("~classes" == k) {
-          configNew.classes = config[k];
-        } else {
-          //sys
-          configNew.sys[k.substring(1)] = config[k];
-        }
-      } else if (k.startsWith("#")) {
-        //slot
-
-        //consider # as default slot
-        configNew.slots["#" == k ? "default" : k.substring(1)] = config[k];
-      } else if (k.startsWith("@")) {
-        //event
-        configNew.events[k.substring(1)] = config[k];
-      } else {
-        //props
-        configNew.props[k] = config[k];
-      }
-      //
+  function getRef(instanceKey: string) {
+    //if instanceKey is not provided,assume to get the current component
+    if (!instanceKey) {
+      instanceKey = configStd?.sys?.instanceKey;
     }
     //
-    return configNew;
-  }
+    if (!instanceKey || !instances) {
+      //Maybe component is not intitialized
+      return undefined;
+    }
+    //
+    //
+    return instances[instanceKey];
+  } 
   //build context  used by config function
-  const context= computed(() => {
+  const context = computed(() => {
     return buildContext();
-  })
-//Because of the JS Hoisting, parseConfig can not access context directly
-//Error:  can't access lexical declaration 'context' before initialization
-function buildContext(){
-  return { emit, props, callMethod };
-}
+  });
+  //Because of the JS Hoisting, parseConfig can not access context directly
+  //Error:  can't access lexical declaration 'context' before initialization
+  function buildContext() {
+    return { emit, props, getRef};
+  }
   //Parse config,evaluate  if it is function
   function parseConfig() {
-    let c=props.config;
-    if (typeof c=='function'){
-      return c(buildContext())
-    }else{
+    let c = props.config;
+    if (typeof c == "function") {
+      return c(buildContext());
+    } else {
       return c;
     }
+  }
+  //This function is to set this component instance to global(use obtainInstances) storage
+  function setComponentInstance(el) {
+    let key = isRef(configStd)? configStd.value.sys?.instanceKey
+      : configStd?.sys?.instanceKey;
+    if (!key) {
+      //since key is always set,so the code should NOT go here
+      return;
+    }
+    //
+    if (el) {
+      //add
+      instances[key] = el;
+    } else {
+      //remove
+      delete instances[key];
+    }
+  }
+  //Inject(Get from parent component) or provide (Creat a new and provide to children) instances
+  //Instances is a map to store component key and component $el
+  function obtainInstances() {
+    const instancesExist = inject("vueWrapperInstances", undefined);
+    if (instancesExist != undefined) {
+      return instancesExist;
+    }
+    //
+    const instancesNew = reactive({});
+    provide("vueWrapperInstances", instancesNew);
+    //
+    return instancesNew;
   }
 
   //
@@ -245,8 +218,8 @@ function buildContext(){
     configStyles,
     configClasses,
     eventHandlers,
-    componentWrapRef,
     context,
-    callMethod,
+    setComponentInstance,
+    getRef,
   };
 }

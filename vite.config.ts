@@ -9,8 +9,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./packages', import.meta.url))
-    }
+    },
+    extensions: [] 
   },
+
   build: {
     outDir: "dist",
     lib: {

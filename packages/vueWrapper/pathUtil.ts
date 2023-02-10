@@ -1,11 +1,11 @@
-//从data中获取指定path的值,如果没有值
+//Obtain value from data by path,return undefined if no value is found
 export function getByPath(data:any,path:string){
     if (!path){
       return data
     }
     //
     let temp=data;
-    //解析用.分开的路径
+    //Split path by .
     let pathItems=path.split(".") ;
     for(let i=0;i<pathItems.length;i++){
       //
@@ -21,35 +21,32 @@ export function getByPath(data:any,path:string){
   }
 
 
-  //根据路径path设置值value到data里
-//force的意思是如果路径不符合条件(路径节点不是object)强行修改路径节点为object
+  //Set value to data by path
+  //Force:Create the proper object if path is not reachable
 export function setByPath(data: any, path: string, value: any,force=false) {
     if (!path) {
-      //这个应该没用
-      data = value
       //
       return data;
     }
     //
-    //解析用.分开的路径
+    //
     let pathItems = path.split(".");
     let temp = data;
     for (let i = 0; i < pathItems.length; i++) {
       if (i == pathItems.length - 1) {
-        //是最后节点,直接赋值
+        //This is final node,set value directly
         temp[pathItems[i]] = value
         break;
       }
       if (!temp[pathItems[i]]) {
-        //不存在创建路径节点
+        //Path item does not existed,create
         temp[pathItems[i]] = {}
       }else{
         if (force && (typeof temp[pathItems[i]])!='object'){
-          //这里检查路径上的所有节点是否是对象,如果不是强制修改为对象
+          //If force create,try to create or modify to object
           temp[pathItems[i]] = {}
         }
-      }
-  
+      }  
       //
       temp = temp[pathItems[i]];
     }
@@ -58,18 +55,3 @@ export function setByPath(data: any, path: string, value: any,force=false) {
     return data;
   
   }
-
-  //解析路径(路径多个部分之间通过.号)，返回第一部分以及剩余部分(没有返回undefined)
-//以后可能需要考虑通过[]表示的
-export function parsePathFirstItem(path:string){
-  if (!path){
-    return {}
-  }
-  let index=path.indexOf('.')
-  if (index<0){
-    //没有.
-    return  {first:path}
-  }
-  //
-  return {first:path.substring(0,index),remainder:path.substring(index+1)}
-}

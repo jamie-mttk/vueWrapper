@@ -46,7 +46,21 @@ styles:{},
 classes:[]
 }
 
+The configuration can be a JSON or funciton. If it is a funciton the parameter is the context described below and the return value should be the JSON described in this chapter.
+
 ```
+
+### Context
+
+"context" is used to for the config to interact with engine.
+The context has the follow contents
+|key     | description  |
+|  ----  | ----         |
+| props  |The value returned by calling [defineProps in vue3](https://vuejs.org/guide/components/props.html).  |
+| emit   |The value returned by calling [defineEmits in vue3](https://vuejs.org/guide/components/events.html#event-arguments). |
+| getRef | Refer to the getRef chapter below|
+
+The context is used as the paramter in configuration and slot funciton.
 
 ### sys
 
@@ -54,8 +68,9 @@ The sys element is the system level configuration with the following properties:
 |property       | description  |
 |  ----         | ----  |
 | component     | The base component. It can be a string(if it is already registerd) or imported component. The value is bind to component with [is attribute](https://vuejs.org/api/built-in-special-attributes.html#is).|
-| modelValue    | Refer to below v-model  |
-| modelValuePath| Refer to below v-model  |
+| modelValue    | Refer to v-model  |
+| modelValuePath| Refer to v-model  |
+| instanceKey   | Refer to getRef  |
 
 #### v-model
 
@@ -151,7 +166,7 @@ The value can be a array, the element of the array will be explained as the belo
 | text     |{{value}} as vue Mustache syntax|
 | html     |Insert as HTML with v-html directive  |
 | component|Consider the value is a component,the slot parameter is set to the component with name slotPara  |
-| function |Consider the value is function, the function will be evaluated with argment  slot parameter,the result will be inserted as HTML|
+| function |Consider the value is function|
 | wrap|Refer to slot define as a wrap|
 | inherit|Expose the slot to parenet component. The slot name is the value if it is provided, otherwise use the original slot name|
 
@@ -168,6 +183,14 @@ The slot parameter is a JSON with following properties.
 |slotDefine|Slot define as desribed above. It can be used to pass customized information from definition.|
 |slotValue |The slot parameter  passed to the slot from parent component.|
 |modelValue|The modelValue of the component|
+
+#### Slot define as a function 
+
+The function paramters are as below, the return value will be inserted as HTML
+|parameter       | description  |
+|  ----    | ----  |
+| context  | Refer to context chapter|
+| slotPara | Slot parameter described above|
 
 
 ### events
@@ -216,7 +239,7 @@ const myColor = ref("#ffff00");
 
 The classes should be imported globally.
 
-### method
+### method [Removed]
 
 The root base component can be called by 'callMethod', refer to demo 'Table'.  
 The first argument is the method name, the other arguments are the argument of the method to be called.
@@ -229,6 +252,40 @@ mainRef1.value.callMethod('clearSelection')
 
 Only the root base component can be called.
 A mechenism to call all the children componets is under design.
+
+
+### getRef
+
+A new configuration item named instanceKey is added under "sys". This key can be empty,the engine will automatically add a unique key.
+Below is a example, some of the configurations are ignored.
+
+```sh
+    sys: {
+      component: XXX,
+      instanceKey:'key1'
+    },
+    slots:{
+      "default":[{
+        sys: {
+          component: YYY,
+          instanceKey:'key2'
+      }},
+      {    sys: {
+        component: ZZZ,
+        instanceKey:'key3'
+      }}]
+    }
+```
+
+So you could use the below code to get the element reference of component XXX,YYY,ZZZ. Please note the return value is NOT a ref, so no need to add ".value" after it to call method
+
+```sh
+  context.getRef('key1')  //Return the reference to XXX
+  context.getRef('key2')  //Return the reference to YYY
+  context.getRef('key3')  //Return the reference to ZZZ
+```
+
+And parameter of getRef is optional, it is not provided, the instanceKey of the current component your code write is used
 
 ### Flat format config
 

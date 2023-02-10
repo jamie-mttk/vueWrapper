@@ -16,3 +16,13 @@ Support flat format config
 
 Global function can be a function ,in previous version only JSON is supported
 Add context to slot function
+
+## Version 0.3.3 @2023/02/06
+
+Fix callMethod bug - Error occure once reference to component is not initialized during componnet mount
+
+## Version 0.3.0 @2023/02/10
+
+Add component function:getRef
+Remove callMethod and replaced with getRef
+Add context to expose emit, props, getRef to config
