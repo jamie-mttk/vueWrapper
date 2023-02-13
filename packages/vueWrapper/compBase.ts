@@ -94,7 +94,7 @@ export function useCompBase(props, emit) {
       //If it is not a funciton directly, consider it is a JSON
       let type = config?.type;
       if (type == "function" && typeof config?.value == "function") {
-        config.value(...arguments);
+        config.value(buildContext(),...arguments);
         return;
       } else if (type == "inherit") {
         //

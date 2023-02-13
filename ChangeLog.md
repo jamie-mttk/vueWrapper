@@ -21,8 +21,13 @@ Add context to slot function
 
 Fix callMethod bug - Error occure once reference to component is not initialized during componnet mount
 
-## Version 0.3.0 @2023/02/10
+## Version 0.4.0 @2023/02/10
 
 Add component function:getRef
 Remove callMethod and replaced with getRef
 Add context to expose emit, props, getRef to config
+
+
+## Version 0.4.1 @2023/02/13
+
+Add context as the first paramter of event handler if it is a function.
