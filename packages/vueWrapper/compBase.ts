@@ -12,14 +12,14 @@ import {
   inject,
   provide,
 } from "vue";
-import {standardizedConfig} from './compBaseUtil.ts'
+import { standardizedConfig } from "./compBaseUtil.ts";
 import { getByPath, setByPath } from "./pathUtil.ts";
 import { parseSlot } from "./SlotUtil.ts";
 //
 export function useCompBase(props, emit) {
   //Try to convert config to standard format
-  var configStd = standardizedConfig(parseConfig()) || {};
-
+  var configStd = reactive(standardizedConfig(buildContext()));
+  //var configStd =standardizedConfig(buildContext())
   //since provide/inject should be called in setup,so save here
   var instances = obtainInstances();
 
@@ -30,7 +30,8 @@ export function useCompBase(props, emit) {
       if (modelValuePath) {
         return getByPath(configStd.sys?.modelValue, modelValuePath);
       } else {
-        return configStd.sys?.modelValue;
+        //No need to check whether modelValue is Ref or not,since configStd is reactive and modelValue will be automatically unwrapped
+        return configStd.sys?.modelValue       
       }
     },
     set(valueNew) {
@@ -42,11 +43,24 @@ export function useCompBase(props, emit) {
       //
       let modelValuePath = configStd.sys?.modelValuePath;
       if (modelValuePath) {
-        setByPath(configStd.sys?.modelValue, modelValuePath, valueNew);
+        setByPath(configStd.sys.modelValue, modelValuePath, valueNew);       
       } else {
-        configStd.sys.modelValue = valueNew;
+        if (isRef(configStd.sys.modelValue)) {
+          configStd.sys.modelValue.value = valueNew;
+        } else {
+
+          configStd.sys.modelValue = valueNew;
+        }
       }
     },
+  })
+  const modelValueName=computed(() => {
+    if (configStd.sys?.modelValueName==undefined) {
+      //Not set,use modelValue
+      return 'modelValue';
+    }
+    // 
+    return configStd.sys.modelValueName
   });
   //Parse component
   //if it is a function, consider it is imported as "() => import('xxx')",
@@ -62,8 +76,20 @@ export function useCompBase(props, emit) {
     //
     return toRaw(component);
   });
+  //v-show
+  const configShow=computed(() => {
+    if (configStd.sys?.show==undefined) {
+      //Not set,always show
+      return true;
+    }
+    // here is to convert to real true/false
+    return configStd.sys.show?true:false;
+  });
+  //modelValue name,the default value is modelValue
+
   //
   const configProps = computed(() => {
+    //console.log('configProps is calculated!')
     if (!configStd || !configStd.props) {
       return {};
     }
@@ -78,7 +104,10 @@ export function useCompBase(props, emit) {
     }
     let events = {} as { [key: string]: any };
     for (let key of Object.keys(configStd.events)) {
-      events[key] = handleEvent(key, handleEvent(key, configStd.events[key]));
+      events[key] = handleEvent(
+        key,
+        handleEvent(key, configStd.events[key])
+      );
     }
     //
     return events;
@@ -94,7 +123,7 @@ export function useCompBase(props, emit) {
       //If it is not a funciton directly, consider it is a JSON
       let type = config?.type;
       if (type == "function" && typeof config?.value == "function") {
-        config.value(buildContext(),...arguments);
+        config.value(buildContext(), ...arguments);
         return;
       } else if (type == "inherit") {
         //
@@ -148,7 +177,7 @@ export function useCompBase(props, emit) {
   function getRef(instanceKey: string) {
     //if instanceKey is not provided,assume to get the current component
     if (!instanceKey) {
-      instanceKey = configStd?.sys?.instanceKey;
+      instanceKey = configStd.sys?.instanceKey;
     }
     //
     if (!instanceKey || !instances) {
@@ -158,7 +187,7 @@ export function useCompBase(props, emit) {
     //
     //
     return instances[instanceKey];
-  } 
+  }
   //build context  used by config function
   const context = computed(() => {
     return buildContext();
@@ -166,21 +195,14 @@ export function useCompBase(props, emit) {
   //Because of the JS Hoisting, parseConfig can not access context directly
   //Error:  can't access lexical declaration 'context' before initialization
   function buildContext() {
-    return { emit, props, getRef};
+    return { emit, props, getRef };
   }
-  //Parse config,evaluate  if it is function
-  function parseConfig() {
-    let c = props.config;
-    if (typeof c == "function") {
-      return c(buildContext());
-    } else {
-      return c;
-    }
-  }
+
   //This function is to set this component instance to global(use obtainInstances) storage
   function setComponentInstance(el) {
-    let key = isRef(configStd)? configStd.value.sys?.instanceKey
-      : configStd?.sys?.instanceKey;
+    let key = isRef(configStd)
+      ? configStd.sys?.instanceKey
+      : configStd.sys?.instanceKey;
     if (!key) {
       //since key is always set,so the code should NOT go here
       return;
@@ -211,7 +233,9 @@ export function useCompBase(props, emit) {
   //
   return {
     modelValue,
+    modelValueName,
     parseBaseComponent,
+    configShow,
     configProps,
     configSlots,
     configSlotsInherit,

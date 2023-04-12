@@ -13,7 +13,9 @@ const emit = defineEmits(['update:modelValue'])
 //
 const {
     modelValue,
+    modelValueName,
     parseBaseComponent,
+    configShow,
     configProps,
     configSlots,
     configSlotsInherit,
@@ -32,7 +34,8 @@ defineExpose({
 })
 </script>
 <template>
-    <component :ref="setComponentInstance" :is="parseBaseComponent" v-model="modelValue"  v-bind="configProps"
+
+    <component :ref="setComponentInstance" :is="parseBaseComponent" v-show="configShow" v-model:[modelValueName]="modelValue"  v-bind="configProps"
         v-on="eventHandlers" :style="configStyles" :class="configClasses" >
         <!--Template of NOT-Inherit,use SlotHolder to process-->
         <template #[k]="sp" :key="k" v-for="(v, k)  in  configSlots">

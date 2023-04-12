@@ -302,3 +302,29 @@ The idea is to set a prefix to each segment per the below table.
 |classes|~classes|
 
 Refer to sample "Concept" and "Form" for more detail
+
+
+## Release note
+
+### v0.4.2 2023/4/12
+
+1. Reactive property
+The property can be reatived.
+For example, the disabled property can be changed according to some other value.
+It can be configured as this：
+
+```sh
+disabled: computed(()=>formValue.value.switch)
+```
+Please note it should be a computed.
+#### v-show support
+
+A new property "show" is added under sys. The value is a computed, it will be set to v-show.
+
+```sh
+show: computed(()=>formValue.value.switch)
+```
+
+#### modelValue name
+
+A new property "modelValueName" is added under sys. It is used to set the v-model name if it is not modelValue.

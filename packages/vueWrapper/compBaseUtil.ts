@@ -1,26 +1,21 @@
-import { ref, isRef, isReactive, reactive, toRaw } from "vue";
+import { ref, isRef, isReactive, reactive, toRaw, computed } from "vue";
 
 //Conver to standard format if the config is flat format
 //Add missing fields: so far only instanceKey is added
-export function standardizedConfig(config) {
-  let configNew = convertFlatConfig(config);
+export function standardizedConfig(ctx) {
+  //eval if config is a funciton,./k.
+  const config = evalConfig(ctx) || {};
   //
-  //if there is no instanceKey,add a unique one
-  let key = isRef(configNew)
-    ? configNew.value.sys?.instanceKey
-    : configNew.sys?.instanceKey;
-  if (key) {
-    //alreay has a key,return directly since it is not necessary to create one for the config
-    return configNew;
-  }
+  //get raw config,consider ref or reactive
+  let configNew = getRawValue(config);
   //
-  key = getUniqueID();
-  //
-  if (isRef(configNew)) {
-    configNew.value.sys.instanceKey = key;
-  } else {
-    configNew.sys.instanceKey = key;
-  }
+  //check whether there is transform,if yes ,call it
+  configNew = handleTransform(configNew);
+  //convert to standard format if it is a flat structure
+  configNew = convertFlatConfig(configNew);
+
+  //apply unique key if it is not provided
+  applyUniqueKey(configNew);
   //
   return configNew;
 }
@@ -28,34 +23,49 @@ export function standardizedConfig(config) {
 //**********************************************************
 //* Below are private functions
 //**********************************************************
+//Parse config,evaluate if it is function
+function evalConfig(ctx) {
+  let c = ctx.props.config;
+  if (typeof c == "function") {
+    return c(ctx);
+  } else {
+    return c;
+  }
+}
 
-
-
+//GET raw of the confif, if it is ref,call .value,otherwise call toRaw
+function getRawValue(para) {
+  if (isRef(para)) {
+    return para.value;
+  } else if (isReactive(para)) {
+    //here we should use toRaw to get the original object,otherwise the convertFlatConfig will not work --- the value,for example modelValue will be unwrapped
+    return toRaw(para);
+  } else {
+    return para;
+  }
+}
 //Convert flat config to standard format if it is flat format;otherwise return directly
 function convertFlatConfig(config) {
-  //please note, toRaw can NOT process ref
-  let configRaw = isRef(config) ? config.value : toRaw(config);
-  if (!configRaw["~component"]) {
-    //Considier it is standard config, do not conver
+  //
+  if (!config["~component"]) {
+    //Considier it is standard config, do not convert
     return config;
   }
   //
-  let configNew = convertFlatInternal(configRaw);
-
-  //Here we keep the Reactivity if needed
-  if (isRef(config)) {
-    return ref(configNew);
-  } else if (isReactive(config)) {
-    return reactive(configNew);
-  } else {
-    return configNew;
-  }
+  return convertFlatInternal(config);
 }
 //Core function of convert flat config to standand config
 function convertFlatInternal(config) {
   //styles/classes are one level, so it can be set directly
   //And please also note it is a low level copy!
-  let configNew = { sys: {}, props: {}, slots: {}, events: {} };
+  let configNew = {
+    sys: {},
+    props: {},
+    slots: {},
+    events: {},
+    styles: {},
+    classes: [],
+  };
   for (let k of Object.keys(config)) {
     if (k.startsWith("~")) {
       //
@@ -80,6 +90,29 @@ function convertFlatInternal(config) {
   }
   //
   return configNew;
+}
+
+function handleTransform(configNew) {
+  if (
+    configNew.sys?.transform &&
+    typeof configNew.sys.transform == "function"
+  ) {
+    return configNew.sys?.transform(configNew);
+  } else {
+    return configNew;
+  }
+}
+function applyUniqueKey(configNew) {
+  //
+  //if there is no instanceKey,add a unique one
+  let key = configNew.sys?.instanceKey;
+  if (!key) {
+    //Create a unique one if there is no instance key
+
+    //
+    key = getUniqueID();
+    configNew.sys.instanceKey = key;
+  }
 }
 
 //Generate a unique string as component key

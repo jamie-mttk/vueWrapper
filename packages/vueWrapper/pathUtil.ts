@@ -1,10 +1,13 @@
+import { isRef} from 'vue'
+
+
 //Obtain value from data by path,return undefined if no value is found
 export function getByPath(data:any,path:string){
     if (!path){
       return data
     }
     //
-    let temp=data;
+    let temp=isRef(data)?data.value:data;
     //Split path by .
     let pathItems=path.split(".") ;
     for(let i=0;i<pathItems.length;i++){
@@ -16,6 +19,7 @@ export function getByPath(data:any,path:string){
         return undefined
       }
     }
+
     //
     return temp;
   }
@@ -30,11 +34,21 @@ export function setByPath(data: any, path: string, value: any,force=false) {
     }
     //
     //
+
+    // console.log('####'+isRef(data)+'~~~'+isReactive(data))
+
+    let temp =isRef(data)?data.value:data;
+  //  console.log('@@@'+isRef(temp)+'~~~'+isReactive(temp))
+ //   console.log(data)
     let pathItems = path.split(".");
-    let temp = data;
     for (let i = 0; i < pathItems.length; i++) {
       if (i == pathItems.length - 1) {
         //This is final node,set value directly
+        // console.log('~~~~~~~~')
+        // console.log(temp)
+        // console.log(i)
+        // console.log(pathItems[i])
+        // console.log(value)
         temp[pathItems[i]] = value
         break;
       }
