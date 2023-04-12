@@ -70,11 +70,15 @@ The sys element is the system level configuration with the following properties:
 | component     | The base component. It can be a string(if it is already registerd) or imported component. The value is bind to component with [is attribute](https://vuejs.org/api/built-in-special-attributes.html#is).|
 | modelValue    | Refer to v-model  |
 | modelValuePath| Refer to v-model  |
+| modelValueName| Refer to v-model  |
+| show          | It will be set to v-show, the value can be a computed or ref/reactive variable|
+| instanceKey   | Refer to getRef  |
 | instanceKey   | Refer to getRef  |
 
 #### v-model
 
 If the base component has no v-model( for example e-row/el-col), then modelValue is not necessary to set.
+modelValueName is used to set the name if it is not veue3 default value 'modelValue'
 There are three methods to set v-model
 
 1. v-model is defined by a variable,just set the modelValue to that variable.  Refer to demo 'Concept' -  configInput2.
@@ -317,7 +321,7 @@ It can be configured as this：
 disabled: computed(()=>formValue.value.switch)
 ```
 Please note it should be a computed.
-#### v-show support
+2. v-show support
 
 A new property "show" is added under sys. The value is a computed, it will be set to v-show.
 
@@ -325,6 +329,6 @@ A new property "show" is added under sys. The value is a computed, it will be se
 show: computed(()=>formValue.value.switch)
 ```
 
-#### modelValue name
+3.modelValue name
 
 A new property "modelValueName" is added under sys. It is used to set the v-model name if it is not modelValue.
