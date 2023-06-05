@@ -1,5 +1,8 @@
-
 <script setup lang="ts">
+import {
+    onMounted, onUpdated, onUnmounted, onBeforeMount, onBeforeUpdate, onBeforeUnmount, onErrorCaptured, onActivated,
+    onDeactivated,
+} from 'vue'
 import SlotHolder from './SlotHolder.vue'
 import { useCompBase } from './compBase.js'
 //Define component name with unplugin-vue-define-options
@@ -7,7 +10,25 @@ defineOptions({
     name: "CompWrap"
 });
 //
-const props = defineProps(["config"])
+//
+const props = defineProps({
+    config: {
+        type: Object,
+        required: true,
+        default() {
+            return {}
+        }
+    },
+    //Only used internally to transfer slotPara among components tree
+    slotParaStack: {
+        type: Array,
+        required: false,
+        default() {
+            return []
+        }
+    },
+})
+
 //v-model event
 const emit = defineEmits(['update:modelValue'])
 //
@@ -15,12 +36,14 @@ const {
     modelValue,
     modelValueName,
     parseBaseComponent,
+    configIf,
     configShow,
     configProps,
     configSlots,
     configSlotsInherit,
     configStyles,
     configClasses,
+    configLifecycle,
     eventHandlers,
     setComponentInstance,
     context,
@@ -28,20 +51,43 @@ const {
 
 } = useCompBase(props, emit)
 
+//lifecycle
+function invokeLifecycle(type: string) {
+    const handler = configLifecycle.value[type]
+    if (handler && typeof handler == 'function') {
+        handler(context)
+    }
+}
+
+onMounted(() => invokeLifecycle('onMounted'))
+onUpdated(() => invokeLifecycle('onUpdated'))
+onUnmounted(() => invokeLifecycle('onUnmounted'))
+onBeforeMount(() => invokeLifecycle('onBeforeMount'))
+onBeforeUpdate(() => invokeLifecycle('onBeforeUpdate'))
+onBeforeUnmount(() => invokeLifecycle('onBeforeUnmount'))
+onActivated(() => invokeLifecycle('onActivated'))
+onDeactivated(() => invokeLifecycle('onDeactivated'))
+onErrorCaptured((err, instance, info) => {
+    const handler = configLifecycle.value.onErrorCaptured
+    if (typeof handler == 'function') {
+        handler(err, instance, info)
+    }
+})
 //Define the methods to expose 
 defineExpose({
     getRef
 })
 </script>
 <template>
-
-    <component :ref="setComponentInstance" :is="parseBaseComponent" v-show="configShow" v-model:[modelValueName]="modelValue"  v-bind="configProps"
-        v-on="eventHandlers" :style="configStyles" :class="configClasses" >
+    <component :ref="setComponentInstance" :is="parseBaseComponent" v-show="configShow"  v-if="configIf"
+        v-model:[modelValueName]="modelValue" v-bind="configProps" v-on="eventHandlers" :style="configStyles"
+        :class="configClasses" :slotParaStack="slotParaStack">
         <!--Template of NOT-Inherit,use SlotHolder to process-->
         <template #[k]="sp" :key="k" v-for="(v, k)  in  configSlots">
-            <SlotHolder :slotDefine="v" :modelValue="modelValue" :slotValue="sp" :context="context">
+            <SlotHolder :slotDefine="v" :modelValue="modelValue" :slotValue="sp" :context="context"
+                :slotParaStackParent="slotParaStack">
             </SlotHolder>
-        </template>    
+        </template>
         <!--Template of -Inherit-->
         <template #[k]="sp" :key="k" v-for="(v, k)  in  configSlotsInherit">
             <slot :name="v.value ? v.value : k" v-bind="sp"></slot>

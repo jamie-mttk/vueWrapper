@@ -332,3 +332,7 @@ show: computed(()=>formValue.value.switch)
 3.modelValue name
 
 A new property "modelValueName" is added under sys. It is used to set the v-model name if it is not modelValue.
+
+   transform
+
+A new property "transform" is added under sys. This is a funciton to convert unstandard config to standard config

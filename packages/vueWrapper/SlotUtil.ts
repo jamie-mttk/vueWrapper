@@ -1,14 +1,14 @@
 //Qualify the slot configuration
   //Refer to the proper documentation to understand the slot configuration
   export function parseSlot(c: any) {
-    if (!c || !c.slots) {
+    if (!c || !c.value.slots) {
       return {};
     }
    
     //
     let result = {} as { [key: string]: Array<Object> };
-    for (let key of Object.keys(c.slots)) {
-      let slotDefine = c.slots[key];
+    for (let key of Object.keys(c.value.slots)) {
+      let slotDefine = c.value.slots[key];
       if (!slotDefine) {
         continue;
       }
@@ -46,10 +46,12 @@
     } else if (typeof slotDefine === "function") {
       return { type: "function", value: slotDefine };
     } else if (typeof slotDefine === "object") {
-      //check whether there are type field.
-      if (slotDefine.hasOwnProperty('type')){
+      //check whether there are type field
+      //And it is not flat structure - add by Jamie @2023/05/23
+      if (slotDefine.hasOwnProperty('type') && !slotDefine.hasOwnProperty('~component')){
         return slotDefine;
       }
+      //
       //If there is no type property, consider it is ignored,add default value wrap
       return {type:'wrap',value:slotDefine}
       

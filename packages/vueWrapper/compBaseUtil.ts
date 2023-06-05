@@ -1,10 +1,13 @@
-import { ref, isRef, isReactive, reactive, toRaw, computed } from "vue";
+import { ref, isRef, isReactive, reactive, toRaw, computed,unref } from "vue";
 
 //Conver to standard format if the config is flat format
 //Add missing fields: so far only instanceKey is added
 export function standardizedConfig(ctx) {
+  // console.log('~~~~~~~~~~~~~~~~~~~~~~')
+  // console.log(unref(ctx.props.config))
   //eval if config is a funciton,./k.
   const config = evalConfig(ctx) || {};
+
   //
   //get raw config,consider ref or reactive
   let configNew = getRawValue(config);
@@ -46,6 +49,7 @@ function getRawValue(para) {
 }
 //Convert flat config to standard format if it is flat format;otherwise return directly
 function convertFlatConfig(config) {
+
   //
   if (!config["~component"]) {
     //Considier it is standard config, do not convert
@@ -65,6 +69,7 @@ function convertFlatInternal(config) {
     events: {},
     styles: {},
     classes: [],
+    lifecycle:{},
   };
   for (let k of Object.keys(config)) {
     if (k.startsWith("~")) {
@@ -83,21 +88,33 @@ function convertFlatInternal(config) {
     } else if (k.startsWith("@")) {
       //event
       configNew.events[k.substring(1)] = config[k];
+    } else if (k.startsWith("^")) {
+      //lifecycle
+      configNew.lifecycle[k.substring(1)] = config[k];
     } else {
       //props - no special prefix
       configNew.props[k] = config[k];
     }
   }
   //
+  // console.log('#################')
+  // console.log(JSON.stringify(configNew,null,2))
+  //
   return configNew;
 }
 
 function handleTransform(configNew) {
+  let transform=undefined
+  if (configNew.sys?.transform){
+    transform=configNew.sys?.transform
+  }else{
+    transform=configNew['~transform']
+  }
   if (
-    configNew.sys?.transform &&
-    typeof configNew.sys.transform == "function"
+    transform &&
+    typeof transform == "function"
   ) {
-    return configNew.sys?.transform(configNew);
+    return transform(configNew);
   } else {
     return configNew;
   }

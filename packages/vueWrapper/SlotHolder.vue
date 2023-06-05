@@ -7,7 +7,7 @@ defineOptions({
 });
 
 //context is the context to obtain props/emit or call method
-const props = defineProps(['context','slotDefine', 'slotValue', 'modelValue'])
+const props = defineProps(['context','slotDefine', 'slotValue', 'modelValue','slotParaStackParent'])
 
 //Slot parameter used for component/function/wrap
 const slotPara = computed(() => {
@@ -17,6 +17,12 @@ const slotPara = computed(() => {
     result['slotDefine'] = props.slotDefine
     result['modelValue'] = props.modelValue
     result['slotValue'] = props.slotValue
+    return result
+})
+//slotPara of this component,first copy all the parent slotPara,then add this one
+const slotParaStack = computed(() => {
+    let result =[...props.slotParaStackParent]
+    result.push(slotPara)
     return result
 })
 //If the wrapValue is a function ,the function is called with parameter slotPara and the return value is returned
@@ -61,7 +67,7 @@ function convertToArray(val) {
             <span v-for="v of convertToArray(sd)" v-html="v(props.context,slotPara)"></span>
         </template>
         <template v-if="sd.type == 'wrap'">
-            <CompWrap v-for="v of convertToArray(sd)" :config="wrapValue(v)"></CompWrap>
+            <CompWrap v-for="v of convertToArray(sd)" :config="wrapValue(v)" :slotParaStack="slotParaStack"></CompWrap>
         </template>
     </template>
 </template>
