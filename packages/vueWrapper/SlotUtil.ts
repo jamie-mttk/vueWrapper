@@ -16,7 +16,7 @@
       //
       result[key] =Array.isArray(parsed)?parsed: [parsed];    
     }
-    
+
     //
     return result;
   }
@@ -26,7 +26,7 @@
     //
     if (Array.isArray(slotDefine)) {
       //
-      let result = [];
+      let result:object[] = [];
       //
       for (let d of slotDefine) {
         let r = parseSlotSingle(d);

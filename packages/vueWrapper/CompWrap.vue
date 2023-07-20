@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {
     onMounted, onUpdated, onUnmounted, onBeforeMount, onBeforeUpdate, onBeforeUnmount, onErrorCaptured, onActivated,
-    onDeactivated,
+    onDeactivated,unref,
 } from 'vue'
 import SlotHolder from './SlotHolder.vue'
 import { useCompBase } from './compBase.js'
@@ -35,7 +35,7 @@ const emit = defineEmits(['update:modelValue'])
 const {
     modelValue,
     modelValueName,
-    parseBaseComponent,
+    parsedBaseComponent,
     configIf,
     configShow,
     configProps,
@@ -73,24 +73,23 @@ onErrorCaptured((err, instance, info) => {
         handler(err, instance, info)
     }
 })
-//Define the methods to expose 
+//The methods to expose 
 defineExpose({
     getRef
 })
 </script>
 <template>
-    <component :ref="setComponentInstance" :is="parseBaseComponent" v-show="configShow"  v-if="configIf"
+
+    <component :ref="setComponentInstance" :is="parsedBaseComponent" v-show="configShow"  v-if="configIf"
         v-model:[modelValueName]="modelValue" v-bind="configProps" v-on="eventHandlers" :style="configStyles"
         :class="configClasses" :slotParaStack="slotParaStack">
         <!--Template of NOT-Inherit,use SlotHolder to process-->
         <template #[k]="sp" :key="k" v-for="(v, k)  in  configSlots">
-            <SlotHolder :slotDefine="v" :modelValue="modelValue" :slotValue="sp" :context="context"
-                :slotParaStackParent="slotParaStack">
-            </SlotHolder>
+            <SlotHolder :slotValue="sp" :slotDefine="v"   :context="context"></SlotHolder>
         </template>
         <!--Template of -Inherit-->
         <template #[k]="sp" :key="k" v-for="(v, k)  in  configSlotsInherit">
-            <slot :name="v.value ? v.value : k" v-bind="sp"></slot>
+            <slot :name="unref(v) ? unref(v) : k" v-bind="sp" :slotDefine="v" :context="context"></slot>
         </template>
     </component>
 </template>  

@@ -10,7 +10,7 @@ npm install vuewrapper -save
 
 ## Usage
 
-You can import the component in main.js globally
+You can import the component in main.ts/main.js globally
 
 ```sh
 import WRAPPER from 'vuewrapper'
@@ -34,7 +34,7 @@ import {CompWrap} from 'vuewrapper'
 
 We highly recommand to go through all the demos first and then read this manual.
 The below introduction is based on [element plus](https://github.com/element-plus/element-plus). But this project can work with other component library as well.
-The structure of the config is as below. Since version 0.3.0, flat format config is supported,please refer to proper chapter belo
+The structure of the config is as below. Since version 0.3.0, flat format config is supported,please refer to proper chapter below
 
 ```sh
 
@@ -43,12 +43,12 @@ props:{},
 slots:{},
 events:{},
 styles:{},
-classes:[]
+classes:[],
+lifecycle:{}
 }
 
-The configuration can be a JSON or funciton. If it is a funciton the parameter is the context described below and the return value should be the JSON described in this chapter.
-
 ```
+The configuration can be a JSON or funciton. If it is a funciton the parameter is the context described below and the return value should be the JSON described in this chapter.
 
 ### Context
 
@@ -58,27 +58,44 @@ The context has the follow contents
 |  ----  | ----         |
 | props  |The value returned by calling [defineProps in vue3](https://vuejs.org/guide/components/props.html).  |
 | emit   |The value returned by calling [defineEmits in vue3](https://vuejs.org/guide/components/events.html#event-arguments). |
+| modelValue | The modelValue of this component, undefined is returned if not set|
 | getRef | Refer to the getRef chapter below|
 
-The context is used as the paramter in configuration and slot funciton.
+
+The context is used as the paramter in configuration and slot function.
 
 ### sys
 
 The sys element is the system level configuration with the following properties:
-|property       | description  |
+| property      | description  |
 |  ----         | ----  |
-| component     | The base component. It can be a string(if it is already registerd) or imported component. The value is bind to component with [is attribute](https://vuejs.org/api/built-in-special-attributes.html#is).|
+| component     | The base component|
 | modelValue    | Refer to v-model  |
 | modelValuePath| Refer to v-model  |
 | modelValueName| Refer to v-model  |
-| show          | It will be set to v-show, the value can be a computed or ref/reactive variable|
-| instanceKey   | Refer to getRef  |
-| instanceKey   | Refer to getRef  |
+| if            | It will set to v-if, the value can be a computed or ref/reactive variable|
+| show          | It will set to v-show, the value can be a computed or ref/reactive variable|
+| instanceKey   | Refer to instanceKey  |
+| instanceKeyAsKey   | Refer to instanceKey  |
+| transform | Refer to transform chapter |
 
-#### v-model
+#### component
+
+It is bind to component with [is attribute](https://vuejs.org/api/built-in-special-attributes.html#is). The possible types are listed below:
+
+| Type      | Description  | Sample |
+|  ----         | ----  |----  |
+| String   | The component name which is registered with [app.component](https://vuejs.org/api/application.html#app-component)  | component:'ElButton'/ 'el-button'|
+| Function | Import directly, refer to sample |  component:()=>import('./Tester.vue')|
+| Component|Import first and then use it|import Tester from './Tester.vue' component:Tester|
+
+If it is not set,use default value 'div'.
+
+
+#### modelValue/modelValuePath/modelValueName
 
 If the base component has no v-model( for example e-row/el-col), then modelValue is not necessary to set.
-modelValueName is used to set the name if it is not veue3 default value 'modelValue'
+"modelValueName" is used to set the name if it is not veue3 default value 'modelValue'
 There are three methods to set v-model
 
 1. v-model is defined by a variable,just set the modelValue to that variable.  Refer to demo 'Concept' -  configInput2.
@@ -110,7 +127,6 @@ Refer to demo 'Form' - formConfig1
 ```sh
 sys: {
     component: "ElInput",
-    //Use modelValuePath config modelValue
     modelValue: formValue,
     modelValuePath:'address',
 },
@@ -118,12 +134,36 @@ sys: {
 
 Please note in the above example, config like ***modelValue: formValue.address*** does NOT work.
 
+#### instanceKey/instanceKeyAsKey
+
+If the value is not set the engine will automatically create a unique key.
+"instanceKey" has two use cases: The first is used as the parameter of getRef function, refer to the getRef segment below; The second is set to [the vue special property key](https://vuejs.org/api/built-in-special-attributes.html#key) if instanceKeyAsKey is set to true(The default value of instanceKeyAsKey is false). Set a unique key can avoid vue to reuse the element/component which may cause lifecycles hook work incorrectly.
+
+#### transform
+
+"transform" is a user defined function to transform user defined config to vueWrapper standard config. 
+verwrapper will try to get transform funciton from JSON configNew.sys.transform or '~transform'. If not found, the config will be consider as a vueWrapper standard format.
+If found, the function will be called with below paramters and the function return will be considered as vueWrapper standard format.
+
+Since the config will be processed multiple times, below is the process sequence.
+
+1. Funtion check
+  If the input config is a funciton, call this function with one paramter context and the function return will proceed
+2. Tranform
+   Call transform if it is provided
+3. Flat format convert
+  Conert to standard format if it is a flat format
+4. Apply instanceKey
+  If instanceKey is not provided, create a unique key and apply to it
+
 ### props
 
 The idea to use [v-bind](https://vuejs.org/api/built-in-directives.html#v-bind) to bind all the props to component.
 So it is a JSON, the value can be any type. Below is a sample.
 
 ```sh
+const inputSize=ref('small')
+
   props: {
     placeholder: "Please input value complex sample",
     clearable: true,
@@ -133,6 +173,7 @@ So it is a JSON, the value can be any type. Below is a sample.
   },
   ```
 
+To dynamically change the props value, you can set the prop value to a ref or reactive. Refer to the size prop of the above example. If the value of inputSize is changed, the component size will change as well.
 
 
 ### slots
@@ -151,7 +192,7 @@ slot2:slot define 2,
 
 #### Slot define
 
-A slot define can be a JSON / shortcut / JSON array. JSON is the standard format of slot define which will be described later.The JSON array can be JSON or shortcut. Shortcut is kind of simplified configuration.
+A slot define can be a shortcut / JSON /  JSON array. JSON is the standard format of slot define which will be described later.The JSON array can be standard JSON or shortcut. Shortcut is kind of simplified configuration.
 Shotcut can be the following types, they will be convert to standard JSON format automatically.
 
 |Type                              | Converted to  |
@@ -169,32 +210,67 @@ The value can be a array, the element of the array will be explained as the belo
 |  ----    | ----  |
 | text     |{{value}} as vue Mustache syntax|
 | html     |Insert as HTML with v-html directive  |
-| component|Consider the value is a component,the slot parameter is set to the component with name slotPara  |
+| component|Consider the value is a component  |
 | function |Consider the value is function|
 | wrap|Refer to slot define as a wrap|
-| inherit|Expose the slot to parenet component. The slot name is the value if it is provided, otherwise use the original slot name|
+| inherit|Expose the slot to parent component. The slot name is the value if it is provided, otherwise use the original slot name|
 
-#### Slot define as a wrap
+#### slotPara
 
-The value can be a standard configuration as described in this manual, or it can be funciton which  return a standard configuration. The input argument of funtion is slot parameter, so the configuration can be generated by the input parameter.
-
-#### Slot parameter
-
-The slot parameter is a JSON with following properties.
+The slot parameter(slotPara) is a JSON with following properties.
 
 |key       | value  |
 |----      | ----  |
 |slotDefine|Slot define as desribed above. It can be used to pass customized information from definition.|
 |slotValue |The slot parameter  passed to the slot from parent component.|
-|modelValue|The modelValue of the component|
+|context|Refer to context chapter|
+
+"slotParaStack" is an array of slotPara, you can also consider it as a stack. It contains all the slotPara from root component to current component.
+And slotParaStack can also be transfered among components and vueWrapper by parameters.
 
 #### Slot define as a function 
 
 The function paramters are as below, the return value will be inserted as HTML
 |parameter       | description  |
 |  ----    | ----  |
-| context  | Refer to context chapter|
-| slotPara | Slot parameter described above|
+| slotPara | Described above|
+| slotParaStack  | Described above|
+
+#### Slot define as a component
+
+If the slot is a vue component ,the following props will be set
+|Prop       | description  |
+|  ----    | ----  |
+| slotPara | Described above|
+| slotParaStack  | Described above|
+
+#### Slot define as a wrap
+
+The value can be a standard configuration as described in this manual, or it can be function which return a standard configuration or configuration array. The input argument of funtion is slot parameter, so the configuration can be generated by the input parameter.
+
+
+```sh
+{slot1:{
+  type:'wrap',
+  value:{ slot define JSON}
+},
+slot2:{ slot define JSON}
+...
+}
+```
+The above are two samples to use wrap type slot define. The slot2 define is simplified and vueWrapper will automatically convert to the format as slot1 define.
+
+The wrap has two props:one is config,the other is slotParaStack
+
+#### Slot define as a inherit
+
+The following props will set as the inherited slot
+
+|Prop       | description  |
+|  ----    | ----  |
+| slotValue | The original slot value will be set by vue v-bing, that means all the key/value of slot value will be set as seperated prop|
+| slotDefine  | Slot define JSON|
+| context  | Content object|
 
 
 ### events
@@ -243,6 +319,22 @@ const myColor = ref("#ffff00");
 
 The classes should be imported globally.
 
+### lifecycle
+
+```sh
+  lifecycle: {
+    onMounted: function () {
+      console.log('Component is mounted>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
+    },
+    onUnmounted:  ()=> {
+      console.log('Component is unmounted<<<<<<<<<<<<<<<<<<<<<<<<<<<<<')
+    }  
+```
+
+Refer to the above sample, the lifecycle handler is a function.
+If lifecycle does not work as expected, refer to instanceKey segment
+
+
 ### method [Removed]
 
 The root base component can be called by 'callMethod', refer to demo 'Table'.  
@@ -260,7 +352,7 @@ A mechenism to call all the children componets is under design.
 
 ### getRef
 
-A new configuration item named instanceKey is added under "sys". This key can be empty,the engine will automatically add a unique key.
+"getRef" function returns the vue component instance. The input parameter is the instanceKey.
 Below is a example, some of the configurations are ignored.
 
 ```sh
@@ -289,7 +381,7 @@ So you could use the below code to get the element reference of component XXX,YY
   context.getRef('key3')  //Return the reference to ZZZ
 ```
 
-And parameter of getRef is optional, it is not provided, the instanceKey of the current component your code write is used
+And parameter of getRef is optional, it is not provided, the instanceKey of the current component is used
 
 ### Flat format config
 
@@ -304,11 +396,18 @@ The idea is to set a prefix to each segment per the below table.
 |events |@|
 |styles |~styles|
 |classes|~classes|
+|lifecycle|^|
 
 Refer to sample "Concept" and "Form" for more detail
 
 
 ## Release note
+
+### v0.4.5 2023/5/20
+
+1. Add lifecycle
+2. Add transform
+3. Optimize and bug fix during mttk-lowcode project development
 
 ### v0.4.2 2023/4/12
 

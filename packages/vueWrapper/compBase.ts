@@ -5,10 +5,11 @@ import {
   computed,
   defineAsyncComponent,
   isRef,
+  unref,
   reactive,
   toRaw,
   inject,
-  provide,unref,
+  provide,
 } from "vue";
 import { standardizedConfig } from "./compBaseUtil.ts";
 import { getByPath, setByPath } from "./pathUtil.ts";
@@ -16,27 +17,32 @@ import { parseSlot } from "./SlotUtil.ts";
 //
 export function useCompBase(props, emitRaw) {
   //
-  const emit=customziedEmit
   //Try to convert config to standard format
-  // console.log('################')
-  // console.log(props.config)
-  var configStd = computed(() => standardizedConfig(buildContext()));
-  // console.log('@@@@@@@@@@@@@@@@')
-  // console.log(unref(configStd))
-  //var configStd =standardizedConfig(buildContext())
+  var configStd = computed(() => standardizedConfig(buildContext()), 
+  // {
+  //   onTrack(e) {
+  //     //debugger;
+  //     console.log('onTrack',e)
+  //   },
+  //   onTrigger(e) {
+  //     console.log('onTrigger',e)
+  //   },
+  // }
+  );
   //since provide/inject should be called in setup,so save here
   var instances = obtainInstances();
 
-  //modelValue - Here we need to use computed and return configStd.sys?.modelValue does not work.
+  //
   const modelValue = computed({
     get() {
+      if (!configStd || !configStd.value) {
+        return undefined;
+      }
       let modelValuePath = configStd.value.sys?.modelValuePath;
       if (modelValuePath) {
         return getByPath(configStd.value.sys?.modelValue, modelValuePath);
       } else {
-        return isRef(configStd.value.sys?.modelValue)
-          ? configStd.value.sys?.modelValue.value
-          : configStd.value.sys?.modelValue;
+        return unref(configStd.value.sys?.modelValue);
       }
     },
     set(valueNew) {
@@ -71,8 +77,11 @@ export function useCompBase(props, emitRaw) {
   //so function will be wrapped into defineAsyncComponent
   //To avoid the below warning, the return is wrapped with toRaw
   //Vue received a Component which was made a reactive object. This can lead to unnecessary performance overhead, and should be avoided by marking the component with `markRaw` or using `shallowRef` instead of `ref`.
-  const parseBaseComponent = computed(() => {
+  const parsedBaseComponent = computed(() => {
     let component = configStd.value.sys?.component;
+    if (!component) {
+      return "div";
+    }
     //
     if (component && typeof component == "function") {
       return toRaw(defineAsyncComponent(component));
@@ -86,25 +95,20 @@ export function useCompBase(props, emitRaw) {
       //Not set,always show
       return true;
     }
-    const show = isRef(configStd.value.sys.show)
-      ? configStd.value.sys.show.value
-      : configStd.value.sys.show;
+    const show = unref(configStd.value.sys.show);
     // here is to convert to real true/false
-    return show ? true : false;
+    return !!show;
   });
-    //v-if
-    const configIf = computed(() => {
-      if (configStd.value.sys?.if == undefined) {
-        //Not set,always show
-        return true;
-      }
-      const ifValue = isRef(configStd.value.sys.if)
-        ? configStd.value.sys.if.value
-        : configStd.value.sys.if;
-      // here is to convert to real true/false
-      return ifValue ? true : false;
-    });
-  //modelValue name,the default value is modelValue
+  //v-if
+  const configIf = computed(() => {
+    if (configStd.value.sys?.if == undefined) {
+      //Not set,always show
+      return true;
+    }
+    const ifValue = unref(configStd.value.sys.if);
+    // here is to convert to real true/false
+    return !!ifValue;
+  });
 
   //
   const configProps = computed(() => {
@@ -120,13 +124,19 @@ export function useCompBase(props, emitRaw) {
       //Here is to calculate the computed... I do not know why it is needed
       result[k] = isRef(v) ? v.value : v;
     }
+    //Copy instanceKey to prop key if it is not set
+    if (configStd.value.sys["instanceKeyAsKey"]) {
+      if (result.key == undefined) {
+        result.key = configStd.value.sys.instanceKey;
+      }
+    }
     //
     return result;
   });
 
   //
   const eventHandlers = computed(() => {
-    if (!configStd || !configStd.value.events) {
+    if (!configStd || !configStd.value || !configStd.value.events) {
       return {};
     }
     let events = {} as { [key: string]: any };
@@ -138,7 +148,7 @@ export function useCompBase(props, emitRaw) {
       //   key,
       //   handleEvent(key, configStd.value.events[key])
       // );
-      events[key] = handleEvent(key,configStd.value.events[key] );
+      events[key] = handleEvent(key, configStd.value.events[key]);
     }
     //
     return events;
@@ -148,8 +158,8 @@ export function useCompBase(props, emitRaw) {
     // console.log('###'+key)
     // console.log(configEvent)
     return function () {
-      if (typeof configEvent == "function") { 
-          configEvent(buildContext(), ...arguments);
+      if (typeof configEvent == "function") {
+        configEvent(buildContext(), ...arguments);
         return;
       }
       //If it is a String, the function can be found by component tree,may implemented later
@@ -162,23 +172,26 @@ export function useCompBase(props, emitRaw) {
         return;
       } else if (type == "inherit") {
         //
-        emit(configEvent.value ? configEvent.value : key, ...arguments);
+        customziedEmit(
+          configEvent.value ? configEvent.value : key,
+          ...arguments
+        );
         return;
       } else {
         throw "Unsupported event type:" + typeof type;
       }
     };
   }
-//Why we need a customzied emit? We need to catch the event to triiger possible event handle defined in event config
-function customziedEmit(event: string, ...args: any[]){
- const handler=eventHandlers.value[event]
- // console.log('Handler is found:'+handler)
- if(handler){
-  handler(args)
- }
-  //
-  emitRaw(event,...args)
-}
+  //Why we need a customzied emit? To catch the event and trigger event handles defined in event config first
+  const customziedEmit = function (event: string, ...args: any[]) {
+    const handler = eventHandlers.value[event];
+
+    if (handler) {
+      handler(args);
+    }
+    //
+    emitRaw(event, ...args);
+  };
   //Slot configuration - well formated
   const configSlots = computed(() => {
     return parseSlot(configStd);
@@ -199,17 +212,16 @@ function customziedEmit(event: string, ...args: any[]){
     return result;
   });
 
-  //
+  //The return value is reactive so the changes to styles will take affect
   const configStyles = computed(() => {
-
     if (!configStd || !configStd.value.styles) {
       return reactive({});
     }
     //Here the returned value should wrapped by reactive,same as classes
     //Otherwise, the value will not be evaluated (For example backgroundColor:myColor ,myColor is a ref)
-    let styles=configStd.value.styles
-    if(isRef(styles)){
-      styles=styles.value
+    let styles = configStd.value.styles;
+    if (isRef(styles)) {
+      styles = styles.value;
     }
 
     return reactive(styles);
@@ -221,9 +233,9 @@ function customziedEmit(event: string, ...args: any[]){
       return reactive([]);
     }
     //
-    let classes=configStd.value.classes
-    if(isRef(classes)){
-      classes=classes.value
+    let classes = configStd.value.classes;
+    if (isRef(classes)) {
+      classes = classes.value;
     }
     return reactive(classes);
   });
@@ -236,7 +248,7 @@ function customziedEmit(event: string, ...args: any[]){
     //
     const lifecycle = configStd.value.lifecycle;
     //
-    return isRef(lifecycle) ? lifecycle.value : lifecycle;
+    return unref(lifecycle);
   });
   //
   function getRef(instanceKey: string) {
@@ -260,7 +272,7 @@ function customziedEmit(event: string, ...args: any[]){
   //Because of the JS Hoisting, parseConfig can not access context directly
   //Error:  can't access lexical declaration 'context' before initialization
   function buildContext() {
-    return { emit, props, getRef ,slotParaStack:props.slotParaStack};
+    return { emit: customziedEmit, props, modelValue, getRef };
   }
 
   //This function is to set this component instance to global(use obtainInstances) storage
@@ -297,7 +309,7 @@ function customziedEmit(event: string, ...args: any[]){
   return {
     modelValue,
     modelValueName,
-    parseBaseComponent,
+    parsedBaseComponent,
     configIf,
     configShow,
     configProps,

@@ -1,11 +1,11 @@
-import { ref, isRef, isReactive, reactive, toRaw, computed,unref } from "vue";
+import { isRef, isReactive, toRaw } from "vue";
 
 //Conver to standard format if the config is flat format
 //Add missing fields: so far only instanceKey is added
 export function standardizedConfig(ctx) {
-  // console.log('~~~~~~~~~~~~~~~~~~~~~~')
-  // console.log(unref(ctx.props.config))
-  //eval if config is a funciton,./k.
+  // console.log('~~~~~~~~~~~~~~~~~~~~~~~~~~')
+  // console.log(ctx)
+  //eval if config is a funciton
   const config = evalConfig(ctx) || {};
 
   //
@@ -13,14 +13,25 @@ export function standardizedConfig(ctx) {
   let configNew = getRawValue(config);
   //
   //check whether there is transform,if yes ,call it
-  configNew = handleTransform(configNew);
+  configNew = handleTransform(configNew, ctx);
   //convert to standard format if it is a flat structure
   configNew = convertFlatConfig(configNew);
 
-  //apply unique key if it is not provided
-  applyUniqueKey(configNew);
+  //apply instance key if it is not provided
+  applyInstanceKey(configNew);
   //
   return configNew;
+}
+
+//Convert flat config to standard format if it is flat format;otherwise return directly
+export function convertFlatConfig(config) {
+  //
+  if (!config["~component"]) {
+    //Considier it is standard config, do not convert
+    return config;
+  }
+  //
+  return convertFlatInternal(config);
 }
 
 //**********************************************************
@@ -29,6 +40,7 @@ export function standardizedConfig(ctx) {
 //Parse config,evaluate if it is function
 function evalConfig(ctx) {
   let c = ctx.props.config;
+
   if (typeof c == "function") {
     return c(ctx);
   } else {
@@ -47,17 +59,7 @@ function getRawValue(para) {
     return para;
   }
 }
-//Convert flat config to standard format if it is flat format;otherwise return directly
-function convertFlatConfig(config) {
 
-  //
-  if (!config["~component"]) {
-    //Considier it is standard config, do not convert
-    return config;
-  }
-  //
-  return convertFlatInternal(config);
-}
 //Core function of convert flat config to standand config
 function convertFlatInternal(config) {
   //styles/classes are one level, so it can be set directly
@@ -69,7 +71,7 @@ function convertFlatInternal(config) {
     events: {},
     styles: {},
     classes: [],
-    lifecycle:{},
+    lifecycle: {},
   };
   for (let k of Object.keys(config)) {
     if (k.startsWith("~")) {
@@ -103,23 +105,22 @@ function convertFlatInternal(config) {
   return configNew;
 }
 
-function handleTransform(configNew) {
-  let transform=undefined
-  if (configNew.sys?.transform){
-    transform=configNew.sys?.transform
-  }else{
-    transform=configNew['~transform']
+function handleTransform(configNew, ctx) {
+  let transform = undefined;
+  if (configNew.sys?.transform) {
+    transform = configNew.sys?.transform;
+  } else {
+    transform = configNew["~transform"];
   }
-  if (
-    transform &&
-    typeof transform == "function"
-  ) {
+
+  if (transform && typeof transform == "function") {
     return transform(configNew);
   } else {
     return configNew;
   }
 }
-function applyUniqueKey(configNew) {
+//Return true if there is a instanceKey already
+function applyInstanceKey(configNew) {
   //
   //if there is no instanceKey,add a unique one
   let key = configNew.sys?.instanceKey;
@@ -128,6 +129,9 @@ function applyUniqueKey(configNew) {
 
     //
     key = getUniqueID();
+    if (configNew.sys == undefined) {
+      configNew.sys = {};
+    }
     configNew.sys.instanceKey = key;
   }
 }
