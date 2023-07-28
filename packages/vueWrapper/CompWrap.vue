@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {
     onMounted, onUpdated, onUnmounted, onBeforeMount, onBeforeUpdate, onBeforeUnmount, onErrorCaptured, onActivated,
-    onDeactivated,unref,
+    onDeactivated, unref,
 } from 'vue'
 import SlotHolder from './SlotHolder.vue'
 import { useCompBase } from './compBase.js'
@@ -54,8 +54,21 @@ const {
 //lifecycle
 function invokeLifecycle(type: string) {
     const handler = configLifecycle.value[type]
-    if (handler && typeof handler == 'function') {
+    if (!handler) {
+        return
+    }
+    if (Array.isArray(handler)) {
+        for (const h of handler) {
+            if (typeof h == 'function') {
+                h(context)
+            } else {
+                throw Error('Unsuported handler for lifecycle:' + type+" in array")
+            }
+        }
+    } else if (typeof handler == 'function') {
         handler(context)
+    } else {
+        throw Error('Unsuported handler for lifecycle:' + type)
     }
 }
 
@@ -79,13 +92,12 @@ defineExpose({
 })
 </script>
 <template>
-
-    <component :ref="setComponentInstance" :is="parsedBaseComponent" v-show="configShow"  v-if="configIf"
+    <component :ref="setComponentInstance" :is="parsedBaseComponent" v-show="configShow" v-if="configIf"
         v-model:[modelValueName]="modelValue" v-bind="configProps" v-on="eventHandlers" :style="configStyles"
         :class="configClasses" :slotParaStack="slotParaStack">
         <!--Template of NOT-Inherit,use SlotHolder to process-->
         <template #[k]="sp" :key="k" v-for="(v, k)  in  configSlots">
-            <SlotHolder :slotValue="sp" :slotDefine="v"   :context="context"></SlotHolder>
+            <SlotHolder :slotValue="sp" :slotDefine="v" :context="context"></SlotHolder>
         </template>
         <!--Template of -Inherit-->
         <template #[k]="sp" :key="k" v-for="(v, k)  in  configSlotsInherit">
